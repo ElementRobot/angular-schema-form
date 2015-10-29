@@ -1,0 +1,13 @@
+{
+    "nomen": true,
+    "predef": [
+        "angular",
+        "document"
+    ],
+    "plusplus": true,
+    "regexp": true,
+    "edition": "latest",
+    "es6": true,
+    "this": true,
+    "fudge": true
+}
