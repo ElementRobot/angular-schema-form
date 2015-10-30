@@ -2894,5 +2894,17 @@ angular.module('schemaForm').directive('schemaValidate', ['sfValidator', '$parse
     };
   }]);
 
+"use strict";
+
+angular.module('schemaForm').directive('setForm', [
+    function () {
+        return {
+            restrict: 'A',
+            scope: {
+                form: '=setForm'
+            }
+        };
+    }
+]);
 return schemaForm;
 }));
