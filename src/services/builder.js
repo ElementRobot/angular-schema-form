@@ -25,14 +25,7 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
         ngModel: function (args) {
             var key  = args.form.key,
                 modelValue,
-                strKey,
-                nodes,
-                i,
-                j,
-                n,
-                conf,
-                attributes,
-                val;
+                strKey;
 
             if (!args.form.key) {
                 return;
@@ -61,28 +54,28 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
             // No value means a add a ng-model.
             // sf-field-value="replaceAll", loop over attributes and replace $$value$$ in each.
             // sf-field-value="attrName", replace or set value of that attribute.
-            nodes = args.fieldFrag.querySelectorAll('[sf-field-model]');
-            for (i = 0; i < nodes.length; i++) {
-                n = nodes[i];
-                conf = n.getAttribute('sf-field-model');
+            _.forEach(args.fieldFrag.querySelectorAll('[sf-field-model]'), function (node) {
+                var conf,
+                    val;
+
+                conf = node.getAttribute('sf-field-model');
                 if (!conf || conf === '') {
-                    n.setAttribute('ng-model', modelValue);
+                    node.setAttribute('ng-model', modelValue);
                 } else if (conf === 'replaceAll') {
-                    attributes = n.attributes;
-                    for (j = 0; j < attributes.length; j++) {
-                        if (attributes[j].value && attributes[j].value.indexOf('$$value') !== -1) {
-                            attributes[j].value = attributes[j].value.replace(/\$\$value\$\$/g, modelValue);
+                    _.forOwn(node.attributes, function (attribute) {
+                        if (_.includes(attribute.value, '$$value$$')) {
+                            attribute.value = attribute.value.replace(/\$\$value\$\$/g, modelValue);
                         }
-                    }
+                    });
                 } else {
-                    val = n.getAttribute(conf);
+                    val = node.getAttribute(conf);
                     if (val && val.indexOf('$$value$$')) {
-                        n.setAttribute(conf, val.replace(/\$\$value\$\$/g, modelValue));
+                        node.setAttribute(conf, val.replace(/\$\$value\$\$/g, modelValue));
                     } else {
-                        n.setAttribute(conf, modelValue);
+                        node.setAttribute(conf, modelValue);
                     }
                 }
-            }
+            });
         },
         simpleTransclusion: function (args) {
             var children = args.build(args.form.items, args.path + '.items', args.state);
@@ -100,8 +93,7 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                 i,
                 n,
                 sub,
-                items,
-                childFrag;
+                items;
 
             if (transclusions.length) {
                 for (i = 0; i < transclusions.length; i++) {
@@ -114,8 +106,9 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                     items = args.form[sub];
 
                     if (items) {
-                        childFrag = args.build(items, args.path + '.' + sub, args.state);
-                        n.appendChild(childFrag);
+                        n.appendChild(
+                            args.build(items, args.path + '.' + sub, args.state)
+                        );
                     }
                 }
             }
@@ -130,9 +123,6 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                         '.condition, { model: model, "arrayIndex": $index})'
                     ].join(''),
                     strKey,
-                    children,
-                    i,
-                    child,
                     ngIf;
 
                 if (args.form.key) {
@@ -141,21 +131,18 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                                          '"modelValue": model' + (strKey[0] === '[' ? '' : '.') + strKey + '})';
                 }
 
-                children = args.fieldFrag.children || args.fieldFrag.childNodes;
-                for (i = 0; i < children.length; i++) {
-                    child = children[i];
+                _.forEach(args.fieldFrag.children || args.fieldFrag.childNodes, function (child) {
                     ngIf = child.getAttribute('ng-if');
                     child.setAttribute(
                         'ng-if',
                         ngIf ? '(' + ngIf + ') || (' + evalExpr + ')' : evalExpr
                     );
-                }
+                });
             }
         },
         array: function (args) {
             var items = args.fieldFrag.querySelector('[schema-form-array-items]'),
-                state,
-                childFrag;
+                state;
 
             if (items) {
                 state = angular.copy(args.state);
@@ -178,8 +165,9 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                 // hasn't been transitioned to the new builder.
                 state.arrayCompatFlag = true;
 
-                childFrag = args.build(args.form.items, args.path + '.items', state);
-                items.appendChild(childFrag);
+                items.appendChild(
+                    args.build(args.form.items, args.path + '.items', state)
+                );
             }
         }
     };
@@ -222,9 +210,8 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
             items.reduce(function (frag, f, index) {
                 var n,
                     field,
+                    element,
                     tmpl,
-                    div,
-                    template,
                     args,
                     builderFn;
 
@@ -244,7 +231,6 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                     }
 
                     (checkForSlot(f, slots) || frag).appendChild(n);
-
                 } else {
                     // Reset arrayCompatFlag, it's only valid for direct children of the array.
                     state.arrayCompatFlag = false;
@@ -252,15 +238,15 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                     // TODO: Create a couple fo testcases, small and large and
                     //       measure optmization. A good start is probably a cache of DOM nodes for a particular
                     //       template that can be cloned instead of using innerHTML
-                    div = document.createElement('div');
-                    template = templateFn(f, field) || templateFn(f, decorator['default']);
-                    div.innerHTML = template;
-
-                    // Move node to a document fragment, we don't want the div.
                     tmpl = document.createDocumentFragment();
-                    while (div.childNodes.length > 0) {
-                        tmpl.appendChild(div.childNodes[0]);
-                    }
+                    element = angular.element(
+                        templateFn(f, field) ||
+                            templateFn(f, decorator['default'])
+                    );
+
+                    _.forEach(element, function (child) {
+                        tmpl.appendChild(child);
+                    });
 
                     // Possible builder, often a noop
                     args = {

@@ -2,7 +2,8 @@
     "nomen": true,
     "predef": [
         "angular",
-        "document"
+        "document",
+        "_"
     ],
     "plusplus": true,
     "regexp": true,

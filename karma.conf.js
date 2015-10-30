@@ -11,6 +11,12 @@ module.exports = function(config) {
     // frameworks to use
     frameworks: ['mocha', 'chai-sinon'],
 
+    client: {
+      mocha: {
+        bail: false
+      }
+    },
+
 
     // list of files / patterns to load in the browser
     files: [
@@ -19,6 +25,7 @@ module.exports = function(config) {
       'test/lib/angular-mocks.js',
       'bower_components/tv4/tv4.js',
       'bower_components/objectpath/lib/ObjectPath.js',
+      'bower_components/lodash/lodash.js',
       'src/module.js',
       'src/sfPath.js',
       'src/services/*.js',
