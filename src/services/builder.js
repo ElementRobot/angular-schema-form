@@ -140,6 +140,33 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
                 });
             }
         },
+        hide: function (args) {
+            // Do we have a hide? Then we slap on an ng-hide on all children,
+            // but be nice to existing ng-hide.
+            if (args.form.hide) {
+                var evalExpr = [
+                        'evalExpr(',
+                        args.path,
+                        '.hide, { model: model, "arrayIndex": $index})'
+                    ].join(''),
+                    strKey,
+                    ngHide;
+
+                if (args.form.key) {
+                    strKey = sfPathProvider.stringify(args.form.key);
+                    evalExpr = 'evalExpr(' + args.path + '.hide,{ model: model, "arrayIndex": $index, ' +
+                                         '"modelValue": model' + (strKey[0] === '[' ? '' : '.') + strKey + '})';
+                }
+
+                _.forEach(args.fieldFrag.children || args.fieldFrag.childNodes, function (child) {
+                    ngHide = child.getAttribute('ng-hide');
+                    child.setAttribute(
+                        'ng-hide',
+                        ngHide ? '(' + ngHide + ') || (' + evalExpr + ')' : evalExpr
+                    );
+                });
+            }
+        },
         array: function (args) {
             var items = args.fieldFrag.querySelector('[schema-form-array-items]'),
                 state;
@@ -176,7 +203,8 @@ angular.module('schemaForm').provider('sfBuilder', ['sfPathProvider', function (
         builders.sfField,
         builders.ngModel,
         builders.ngModelOptions,
-        builders.condition
+        builders.condition,
+        builders.hide
     ];
     this.stdBuilders = stdBuilders;
 
